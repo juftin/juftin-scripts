@@ -1,0 +1,50 @@
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "juftin-scripts"
+description = "Helpful Python scripts by @juftin"
+version = "0.0.0"
+authors = ["Justin Flannery <juftin@juftin.com>"]
+license = "MIT"
+readme = "README.md"
+homepage = "https://github.com/juftin/juftin-scripts"
+repository = "https://github.com/juftin/juftin-scripts"
+documentation = "https://juftin.github.io/juftin-scripts"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10"
+]
+packages = [{include = "juftin_scripts"}]
+include = [
+    "juftin_scripts/py.typed",
+    "juftin_scripts/*.css"
+]
+
+[tool.poetry.dependencies]
+python = ">=3.7.1,<4.0"
+click = "^8.1.2"
+rich = "^12.6.0"
+textual = "^0.2.1"
+rich-click = "^1.5.2"
+
+[tool.poetry.dev-dependencies]
+textual = {extras = ["dev"], version = "^0.2.1"}
+pytest = ">=5.2"
+coverage = { extras = ["toml"], version = ">=6.2" }
+flake8 = ">=3.0.0"
+tox = "^3.25.1"
+mypy = "^0.971"
+
+[tool.poetry.scripts]
+rotate-aws-profile = "juftin_scripts.rotation:rotate"
+browse = "juftin_scripts.code_browser:main"
+
+[tool.poetry.urls]
+Changelog = "https://github.com/juftin/juftin-scripts/releases"

@@ -1,0 +1,38 @@
+name: Publishing
+
+on:
+    release:
+        types:
+        -   created
+
+jobs:
+
+    pypi-publish:
+        name: PyPI
+        runs-on: ubuntu-latest
+        if: false
+        steps:
+        -   name: Check out the repository
+            uses: actions/checkout@v3
+            with:
+                fetch-depth: 2
+        -   name: Set up Python
+            uses: actions/setup-python@v4
+            with:
+                python-version: '3.9'
+        -   name: Upgrade pip
+            run: |
+                pip install --upgrade pip
+                pip --version
+        -   name: Install Poetry
+            run: |
+                pip install poetry
+                poetry --version
+        -   name: Build package
+            run: |
+                poetry build --ansi
+        -   name: Publish package on PyPI
+            uses: pypa/gh-action-pypi-publish@v1.5.1
+            with:
+                user: __token__
+                password: ${{ secrets.PYPI_TOKEN }}
