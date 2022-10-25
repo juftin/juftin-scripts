@@ -10,7 +10,6 @@ jobs:
     pypi-publish:
         name: PyPI
         runs-on: ubuntu-latest
-        if: false
         steps:
         -   name: Check out the repository
             uses: actions/checkout@v3

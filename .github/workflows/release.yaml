@@ -82,7 +82,7 @@ jobs:
         -   uses: EndBug/add-and-commit@v9
             with:
                 default_author: github_actions
-                message: Version Bump 🤖 ${{ env.PROJECT_VERSION }}
+                message: juftin-scripts 🤖 ${{ env.PROJECT_VERSION }}
 
     github-release:
         name: github-release
