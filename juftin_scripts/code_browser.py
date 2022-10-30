@@ -4,21 +4,26 @@ Code browser example.
 Run with:
     python code_browser.py PATH
 """
-
+import io
 import pathlib
-import sys
 from os import getenv
-from typing import Iterable, List, Optional
+from sys import argv
+from typing import Iterable, List, Optional, Union
 
+import cv2
+import numpy as np
+import pandas as pd
+from art import text2art
+from rich import traceback
 from rich.markdown import Markdown
 from rich.syntax import Syntax
-from rich.traceback import Traceback
-from textual import log
-from textual.app import App
+from rich.table import Table
 from textual.containers import Container, Vertical
 from textual.reactive import var
 from textual.widget import Widget
 from textual.widgets import DirectoryTree, Footer, Header, Static
+
+from juftin_scripts._base import JuftinTextualApp, TextualAppContext
 
 favorite_themes: List[str] = [
     "monokai",
@@ -43,7 +48,59 @@ if rich_default_theme is not False:
     favorite_themes.insert(0, rich_default_theme)
 
 
-class CodeBrowser(App):  # type: ignore
+def image_to_text(file_path):
+    """
+    Convert an Image to ASCII Text
+    """
+    CHAR_LIST = (
+        "$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\|()1{}[]?-_+~<>i!lI;:,\"^`'. "
+    )
+    num_chars = len(CHAR_LIST)
+    num_cols = 150
+    image = cv2.imread(file_path)
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    height, width = image.shape
+    cell_width = width / 150
+    cell_height = 2 * cell_width
+    num_rows = int(height / cell_height)
+    if num_cols > width or num_rows > height:
+        print("Too many columns or rows. Use default setting")
+        cell_width = 6
+        cell_height = 12
+        num_cols = int(width / cell_width)
+        num_rows = int(height / cell_height)
+
+    output_file = io.StringIO()
+    for i in range(num_rows):
+        for j in range(num_cols):
+            output_file.write(
+                CHAR_LIST[
+                    min(
+                        int(
+                            np.mean(
+                                image[
+                                    int(i * cell_height) : min(
+                                        int((i + 1) * cell_height), height
+                                    ),
+                                    int(j * cell_width) : min(
+                                        int((j + 1) * cell_width), width
+                                    ),
+                                ]
+                            )
+                            * num_chars
+                            / 255
+                        ),
+                        num_chars - 1,
+                    )
+                ]
+            )
+        output_file.write("\n")
+    output_file.seek(0)
+    text = output_file.read()
+    return text
+
+
+class CodeBrowser(JuftinTextualApp):
     """
     Textual code browser app.
     """
@@ -60,27 +117,71 @@ class CodeBrowser(App):  # type: ignore
     rich_themes = favorite_themes
     selected_file_path = var(None)
 
+    # traceback.install(show_locals=True)
+
     def watch_show_tree(self, show_tree: bool) -> None:
         """
         Called when show_tree is modified.
         """
         self.set_class(show_tree, "-show-tree")
 
-    def compose(self) -> Iterable[Widget]:
+    def compose(self) -> Iterable[Widget]:  # noqa
         """
         Compose our UI.
         """
-        _file_path = pathlib.Path("./" if len(sys.argv) < 2 else sys.argv[1]).resolve()
-        if _file_path.is_file() and _file_path.exists():
-            self.selected_file_path = _file_path  # type: ignore
-            _file_path = _file_path.parent
-        path = str(_file_path)
-        yield Header()
-        yield Container(
-            Vertical(DirectoryTree(path), id="tree-view"),
-            Vertical(Static(id="code", expand=True), id="code-view"),
-        )
-        yield Footer()
+        assert isinstance(self.config_object, TextualAppContext)
+        if self.config_object.file_path is None:
+            file_path = pathlib.Path.cwd()
+        else:
+            file_path = self.config_object.path
+            if file_path.is_file():
+                self.selected_file_path = file_path
+                file_path = file_path.parent
+        self.header = Header()
+        yield self.header
+        self.directory_tree = Vertical(DirectoryTree(str(file_path)), id="tree-view")
+        self.code_view = Vertical(Static(id="code", expand=True), id="code-view")
+        self.container = Container(self.directory_tree, self.code_view)
+        yield self.container
+        self.footer = Footer()
+        yield self.footer
+
+    def render_document(self, document: pathlib.Path) -> Union[Syntax, Markdown]:
+        """
+        Render a Code Doc Given Its Extension
+
+        Parameters
+        ----------
+        document: pathlib.Path
+            File Path to Render
+
+        Returns
+        -------
+        Union[Syntax, Markdown]
+        """
+        if document.suffix == ".md":
+            element = Markdown(
+                document.read_text(encoding="utf-8"),
+                code_theme=self.rich_themes[self.theme_index],
+                hyperlinks=True,
+            )
+        elif document.suffix == ".csv":
+            df = pd.read_csv(document, nrows=500)
+            element = self.df_to_table(pandas_dataframe=df, rich_table=Table())
+        elif document.suffix == ".parquet":
+            df = pd.read_parquet(document)[:500]
+            element = self.df_to_table(pandas_dataframe=df, rich_table=Table())
+        elif document.suffix in [".png", ".jpg", ".jpeg"]:
+            element = image_to_text(document)
+        else:
+            element = Syntax.from_path(
+                str(document),
+                line_numbers=True,
+                word_wrap=False,
+                indent_guides=True,
+                theme=self.rich_themes[self.theme_index],
+            )
+        return element
 
     def render_code_page(
         self, file_path: Optional[pathlib.Path], scroll_home: bool = True
@@ -92,23 +193,14 @@ class CodeBrowser(App):  # type: ignore
             return
         code_view = self.query_one("#code", Static)
         try:
-            if file_path.suffix == ".md":
-                element = Markdown(
-                    file_path.read_text(encoding="utf-8"),
-                    code_theme=self.rich_themes[self.theme_index],
-                    hyperlinks=True,
-                )
-            else:
-                element = Syntax.from_path(
-                    str(file_path),
-                    line_numbers=True,
-                    word_wrap=False,
-                    indent_guides=True,
-                    theme=self.rich_themes[self.theme_index],
-                )
-        except Exception:
+            element = self.render_document(document=file_path)
+        except Exception:  # noqa
+            font = "block"
             code_view.update(
-                Traceback(theme=self.rich_themes[self.theme_index], width=None)
+                # traceback.Traceback(theme=self.rich_themes[self.theme_index], width=None, show_locals=True)
+                text2art("ENCODING", font=font)
+                + "\n\n"
+                + text2art("ERROR", font=font)
             )
             self.sub_title = f"ERROR [{self.rich_themes[self.theme_index]}]"
         else:
@@ -146,18 +238,13 @@ class CodeBrowser(App):  # type: ignore
             return
         elif self.theme_index < len(self.rich_themes) - 1:
             self.theme_index += 1
-            log.info(self.theme_index, self.rich_themes[self.theme_index])
         else:
             self.theme_index = 0
         self.render_code_page(file_path=self.selected_file_path, scroll_home=False)
 
 
-def main() -> None:
-    """
-    Run the Textual TUI App
-    """
-    CodeBrowser().run()
-
-
 if __name__ == "__main__":
-    main()
+    file_path_arg = None if len(argv) == 1 else argv[1]
+    config = TextualAppContext(file_path=file_path_arg)
+    app = CodeBrowser(config_object=config)
+    app.run()
