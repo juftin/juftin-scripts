@@ -16,6 +16,7 @@ from rich import traceback
 from rich.markdown import Markdown
 from rich.syntax import Syntax
 from rich.table import Table
+from rich.traceback import Traceback
 from textual.containers import Container, Vertical
 from textual.reactive import var
 from textual.widget import Widget
@@ -63,6 +64,7 @@ class CodeBrowser(JuftinTextualApp):
     rich_themes = favorite_themes
     selected_file_path = var(None)
     traceback.install(show_locals=True)
+    force_show_tree = False
 
     def watch_show_tree(self, show_tree: bool) -> None:
         """
@@ -79,9 +81,13 @@ class CodeBrowser(JuftinTextualApp):
             file_path = pathlib.Path.cwd()
         else:
             file_path = self.config_object.path
-            if file_path.is_file():
-                self.selected_file_path = file_path
-                file_path = file_path.parent
+        if file_path.is_file():
+            self.selected_file_path = file_path
+            file_path = self.selected_file_path.parent
+        elif file_path.is_dir() and file_path.joinpath("README.md").exists():
+            self.selected_file_path = file_path.joinpath("README.md")
+            file_path = self.selected_file_path.parent
+            self.force_show_tree = True
         self.header = Header()
         yield self.header
         self.directory_tree = Vertical(DirectoryTree(str(file_path)), id="tree-view")
@@ -142,11 +148,16 @@ class CodeBrowser(JuftinTextualApp):
             return
         try:
             element = self.render_document(document=file_path)
-        except Exception:  # noqa
+        except UnicodeError:
             code_view.update(
                 text2art("ENCODING", font=font) + "\n\n" + text2art("ERROR", font=font)
             )
             self.sub_title = f"ERROR [{self.rich_themes[self.theme_index]}]"
+        except Exception:  # noqa
+            code_view.update(
+                Traceback(theme=self.rich_themes[self.theme_index], width=None)
+            )
+            self.sub_title = "ERROR" + f" [{self.rich_themes[self.theme_index]}]"
         else:
             code_view.update(element)
             if scroll_home is True:
@@ -158,7 +169,7 @@ class CodeBrowser(JuftinTextualApp):
         On Application Mount - See If a File Should be Displayed
         """
         if self.selected_file_path is not None:
-            self.show_tree = False
+            self.show_tree = self.force_show_tree
             self.render_code_page(file_path=self.selected_file_path)
         else:
             self.show_tree = True

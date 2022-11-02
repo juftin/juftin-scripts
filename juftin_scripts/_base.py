@@ -39,9 +39,6 @@ class JuftinTextualApp(App):
 
     def __init__(
         self,
-        driver_class: Type[Driver] | None = None,
-        css_path: CSSPathType = None,
-        watch_css: bool = False,
         config_object: Optional[TextualAppContext] = None,
     ):
         """
@@ -49,16 +46,11 @@ class JuftinTextualApp(App):
 
         Parameters
         ----------
-        driver_class: Type[Driver]
-        css_path: CSSPathType
-        watch_css: bool
         config_object: Optional[TextualAppContext]
             A configuration object. This is an optional python object,
             like a dictionary to pass into an application
         """
-        super().__init__(
-            driver_class=driver_class, css_path=css_path, watch_css=watch_css
-        )
+        super().__init__()
         self.config_object = config_object
 
     @staticmethod

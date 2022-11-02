@@ -1,10 +1,8 @@
 # juftin-scripts
 
-Helpful Python scripts by @juftin
+Helpful Python scripts by [@juftin](https://github.com/juftin)
 
 #### Check Out the [Docs](https://juftin.github.io/juftin-scripts/)
-#### Looking to contribute? See the [Contributing Guide](docs/source/contributing.md)
-#### See the [Changelog](https://github.com/juftin/juftin-scripts/releases)
 
 ___________
 ___________
