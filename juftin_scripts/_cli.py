@@ -7,8 +7,9 @@ import sys
 from dataclasses import dataclass
 from typing import Optional
 
-import rich_click as click
 import click as original_click
+import rich_click as click
+from click.core import Context
 from rich import traceback
 from rich.logging import RichHandler
 
@@ -39,7 +40,7 @@ debug_option = click.option(
 @click.version_option(version=__version__, prog_name=__application__)
 @debug_option
 @click.pass_context
-def cli(ctx: click.core.Context, debug: bool) -> None:
+def cli(ctx: Context, debug: bool) -> None:
     """
     Juftin's CLI 🚀
 

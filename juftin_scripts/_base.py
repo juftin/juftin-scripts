@@ -6,12 +6,11 @@ from __future__ import annotations
 
 import pathlib
 from dataclasses import dataclass
-from typing import Optional, Type
+from typing import Any, Dict, Optional
 
 from pandas import DataFrame
 from rich.table import Table
-from textual.app import App, CSSPathType
-from textual.driver import Driver
+from textual.app import App
 
 
 @dataclass
@@ -21,7 +20,7 @@ class TextualAppContext:
     """
 
     file_path: Optional[str] = None
-    config: Optional[dict] = None
+    config: Optional[Dict[str, Any]] = None
     debug: bool = False
 
     @property
@@ -29,10 +28,14 @@ class TextualAppContext:
         """
         Resolve `file_path` to a pathlib.Path object
         """
-        return pathlib.Path(self.file_path).resolve() if self.file_path else None
+        return (
+            pathlib.Path(self.file_path).resolve()
+            if self.file_path
+            else pathlib.Path.cwd().resolve()
+        )
 
 
-class JuftinTextualApp(App):
+class JuftinTextualApp(App[str]):
     """
     textual.app.App Extension
     """
@@ -60,15 +63,25 @@ class JuftinTextualApp(App):
         show_index: bool = True,
         index_name: Optional[str] = None,
     ) -> Table:
-        """Convert a pandas.DataFrame obj into a rich.Table obj.
-        Args:
-            pandas_dataframe (DataFrame): A Pandas DataFrame to be converted to a rich Table.
-            rich_table (Table): A rich Table that should be populated by the DataFrame values.
-            show_index (bool): Add a column with a row count to the table. Defaults to True.
-            index_name (str, optional): The column name to give to the index column. Defaults to None, showing no value.
-        Returns:
-            Table: The rich Table instance passed, populated with the DataFrame values."""
+        """
+        Convert a pandas.DataFrame obj into a rich.Table obj.
 
+        Parameters
+        ----------
+        pandas_dataframe: DataFrame
+            A Pandas DataFrame to be converted to a rich Table.
+        rich_table: Table
+            A rich Table that should be populated by the DataFrame values.
+        show_index: bool
+            Add a column with a row count to the table. Defaults to True.
+        index_name: Optional[str]
+            The column name to give to the index column. Defaults to None, showing no value.
+
+        Returns
+        -------
+        Table
+            The rich Table instance passed, populated with the DataFrame values.
+        """
         if show_index:
             index_name = str(index_name) if index_name else ""
             rich_table.add_column(index_name)

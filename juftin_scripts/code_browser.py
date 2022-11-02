@@ -62,9 +62,10 @@ class CodeBrowser(JuftinTextualApp):
     show_tree = var(True)
     theme_index = var(0)
     rich_themes = favorite_themes
-    selected_file_path = var(None)
+    selected_file_path: Union[pathlib.Path, None, var[None]] = var(None)
+    force_show_tree = var(False)
+
     traceback.install(show_locals=True)
-    force_show_tree = False
 
     def watch_show_tree(self, show_tree: bool) -> None:
         """
@@ -77,16 +78,12 @@ class CodeBrowser(JuftinTextualApp):
         Compose our UI.
         """
         assert isinstance(self.config_object, TextualAppContext)
-        if self.config_object.file_path is None:
-            file_path = pathlib.Path.cwd()
-        else:
-            file_path = self.config_object.path
+        file_path = self.config_object.path
         if file_path.is_file():
             self.selected_file_path = file_path
-            file_path = self.selected_file_path.parent
+            file_path = file_path.parent
         elif file_path.is_dir() and file_path.joinpath("README.md").exists():
             self.selected_file_path = file_path.joinpath("README.md")
-            file_path = self.selected_file_path.parent
             self.force_show_tree = True
         self.header = Header()
         yield self.header
@@ -97,7 +94,7 @@ class CodeBrowser(JuftinTextualApp):
         self.footer = Footer()
         yield self.footer
 
-    def render_document(self, document: pathlib.Path) -> Union[Syntax, Markdown]:
+    def render_document(self, document: pathlib.Path) -> Union[Syntax, Markdown, Table]:
         """
         Render a Code Doc Given Its Extension
 
@@ -108,33 +105,32 @@ class CodeBrowser(JuftinTextualApp):
 
         Returns
         -------
-        Union[Syntax, Markdown]
+        Union[Syntax, Markdown, Table]
         """
         if document.suffix == ".md":
-            element = Markdown(
+            return Markdown(
                 document.read_text(encoding="utf-8"),
                 code_theme=self.rich_themes[self.theme_index],
                 hyperlinks=True,
             )
         elif document.suffix == ".csv":
             df = pd.read_csv(document, nrows=500)
-            element = self.df_to_table(pandas_dataframe=df, rich_table=Table())
+            return self.df_to_table(pandas_dataframe=df, rich_table=Table())
         elif document.suffix == ".parquet":
             df = pd.read_parquet(document)[:500]
-            element = self.df_to_table(pandas_dataframe=df, rich_table=Table())
+            return self.df_to_table(pandas_dataframe=df, rich_table=Table())
         else:
-            element = Syntax.from_path(
+            return Syntax.from_path(
                 str(document),
                 line_numbers=True,
                 word_wrap=False,
                 indent_guides=True,
                 theme=self.rich_themes[self.theme_index],
             )
-        return element
 
     def render_code_page(
         self,
-        file_path: Optional[pathlib.Path],
+        file_path: pathlib.Path,
         scroll_home: bool = True,
         content: Optional[Any] = None,
     ) -> None:
@@ -173,13 +169,13 @@ class CodeBrowser(JuftinTextualApp):
             self.render_code_page(file_path=self.selected_file_path)
         else:
             self.show_tree = True
-            self.render_code_page(file_path=None, content="BROWSE")
+            self.render_code_page(file_path=pathlib.Path.cwd(), content="BROWSE")
 
     def on_directory_tree_file_click(self, event: DirectoryTree.FileClick) -> None:
         """
         Called when the user click a file in the directory tree.
         """
-        self.selected_file_path = pathlib.Path(event.path)  # type: ignore
+        self.selected_file_path = pathlib.Path(event.path)
         self.render_code_page(file_path=pathlib.Path(event.path))
 
     def action_toggle_files(self) -> None:
