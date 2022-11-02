@@ -7,10 +7,10 @@ Run with:
 
 import pathlib
 from os import getenv
-from sys import argv
 from typing import Any, Iterable, List, Optional, Union
 
 import pandas as pd
+import rich_click as click
 from art import text2art
 from rich import traceback
 from rich.markdown import Markdown
@@ -22,7 +22,7 @@ from textual.reactive import var
 from textual.widget import Widget
 from textual.widgets import DirectoryTree, Footer, Header, Static
 
-from juftin_scripts._base import JuftinTextualApp, TextualAppContext
+from juftin_scripts._base import JuftinClickContext, JuftinTextualApp, TextualAppContext
 
 favorite_themes: List[str] = [
     "monokai",
@@ -197,9 +197,24 @@ class CodeBrowser(JuftinTextualApp):
         self.render_code_page(file_path=self.selected_file_path, scroll_home=False)
 
 
-file_path_arg = None if len(argv) == 1 or __name__ != "__main__" else argv[1]
-config = TextualAppContext(file_path=file_path_arg)
-app = CodeBrowser(config_object=config)
+@click.command(name="browse")
+@click.argument("path", default=None, required=False, type=click.Path(exists=True))
+@click.pass_obj
+def browse(context: JuftinClickContext, path: Optional[str]) -> None:
+    """
+    Start the TUI File Browser
+
+    This utility displays a TUI (textual user interface) application. The application
+    allows you to visually browse through a repository and display the contents of its
+    files
+    """
+    config = TextualAppContext(file_path=path, debug=context.debug)
+    app = CodeBrowser(config_object=config)
+    app.run()
+
+
+_config = TextualAppContext(file_path=None)
+_app = CodeBrowser(config_object=_config)
 
 if __name__ == "__main__":
-    app.run()
+    browse()

@@ -19,7 +19,7 @@ pip install juftin-scripts
 ## CLI Reference
 
 ::: mkdocs-click
-    :module: juftin_scripts._cli
+    :module: juftin_scripts.__main__
     :command: cli
 
 ___________

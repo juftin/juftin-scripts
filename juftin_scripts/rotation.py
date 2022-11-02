@@ -126,6 +126,7 @@ def write_parser_to_file(parser: configparser.ConfigParser) -> pathlib.Path:
     return config_file
 
 
+@click.command("rotate")
 @click.argument("profile", required=False)
 @click.option(
     "-l",
@@ -135,7 +136,6 @@ def write_parser_to_file(parser: configparser.ConfigParser) -> pathlib.Path:
     default=False,
     help="List Available Profiles",
 )
-@click.command("rotate")
 def rotate(profile: str, list_profiles: bool) -> None:
     """
     Rotate a listed AWS Profile to your default profile

@@ -95,3 +95,12 @@ class JuftinTextualApp(App[str]):
             rich_table.add_row(*row)
 
         return rich_table
+
+
+@dataclass
+class JuftinClickContext:
+    """
+    Context Object to Pass Around CLI
+    """
+
+    debug: bool

@@ -4,8 +4,7 @@ Juftin CLI
 
 import logging
 import sys
-from dataclasses import dataclass
-from typing import Optional
+from typing import List
 
 import click as original_click
 import rich_click as click
@@ -14,22 +13,11 @@ from rich import traceback
 from rich.logging import RichHandler
 
 from juftin_scripts import __application__, __version__
-from juftin_scripts._base import TextualAppContext
-from juftin_scripts.code_browser import CodeBrowser
+from juftin_scripts._base import JuftinClickContext
+from juftin_scripts.code_browser import browse
 from juftin_scripts.rotation import rotate
 
 logger = logging.getLogger(__name__)
-traceback.install(show_locals=True)
-
-
-@dataclass
-class JuftinContext:
-    """
-    Context Object to Pass Around CLI
-    """
-
-    debug: bool
-
 
 debug_option = click.option(
     "--debug/--no-debug", default=False, help="Enable extra debugging output"
@@ -50,7 +38,7 @@ def cli(ctx: Context, debug: bool) -> None:
     Among its useful commands include `browse` for a GUI file browser and
     `rotate` - a tool for altering AWS profiles.
     """
-    ctx.obj = JuftinContext(debug=debug)
+    ctx.obj = JuftinClickContext(debug=debug)
     traceback.install(show_locals=debug, suppress=[original_click])
     logging.basicConfig(
         level="NOTSET",
@@ -69,23 +57,11 @@ def cli(ctx: Context, debug: bool) -> None:
     logger.debug("Platform: %s", sys.platform)
 
 
-@cli.command(name="browse")
-@click.argument("path", default=None, required=False, type=click.Path(exists=True))
-@click.pass_obj
-def browse(context: JuftinContext, path: Optional[str]) -> None:
-    """
-    Start the TUI File Browser
+# noinspection PyTypeChecker
+commands: List[click.Command] = [rotate, browse]
 
-    This utility displays a TUI (textual user interface) application. The application
-    allows you to visually browse through a repository and display the contents of its
-    files
-    """
-    config = TextualAppContext(file_path=path, debug=context.debug)
-    app = CodeBrowser(config_object=config)
-    app.run()
-
-
-cli.add_command(rotate)
+for cli_command in commands:
+    cli.add_command(cli_command)
 
 if __name__ == "__main__":
     cli()

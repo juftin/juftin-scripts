@@ -52,7 +52,7 @@ mkdocs-material = "^8.5.7"
 mkdocs-click = "^0.8.0"
 
 [tool.poetry.scripts]
-juftin = "juftin_scripts._cli:cli"
+juftin = "juftin_scripts.__main__:cli"
 
 [tool.poetry.urls]
 Changelog = "https://github.com/juftin/juftin-scripts/releases"
