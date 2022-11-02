@@ -4,14 +4,12 @@ Code browser example.
 Run with:
     python code_browser.py PATH
 """
-import io
+
 import pathlib
 from os import getenv
 from sys import argv
-from typing import Iterable, List, Optional, Union
+from typing import Any, Iterable, List, Optional, Union
 
-import cv2
-import numpy as np
 import pandas as pd
 from art import text2art
 from rich import traceback
@@ -48,58 +46,6 @@ if rich_default_theme is not False:
     favorite_themes.insert(0, rich_default_theme)
 
 
-def image_to_text(file_path):
-    """
-    Convert an Image to ASCII Text
-    """
-    CHAR_LIST = (
-        "$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\|()1{}[]?-_+~<>i!lI;:,\"^`'. "
-    )
-    num_chars = len(CHAR_LIST)
-    num_cols = 150
-    image = cv2.imread(file_path)
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    height, width = image.shape
-    cell_width = width / 150
-    cell_height = 2 * cell_width
-    num_rows = int(height / cell_height)
-    if num_cols > width or num_rows > height:
-        print("Too many columns or rows. Use default setting")
-        cell_width = 6
-        cell_height = 12
-        num_cols = int(width / cell_width)
-        num_rows = int(height / cell_height)
-
-    output_file = io.StringIO()
-    for i in range(num_rows):
-        for j in range(num_cols):
-            output_file.write(
-                CHAR_LIST[
-                    min(
-                        int(
-                            np.mean(
-                                image[
-                                    int(i * cell_height) : min(
-                                        int((i + 1) * cell_height), height
-                                    ),
-                                    int(j * cell_width) : min(
-                                        int((j + 1) * cell_width), width
-                                    ),
-                                ]
-                            )
-                            * num_chars
-                            / 255
-                        ),
-                        num_chars - 1,
-                    )
-                ]
-            )
-        output_file.write("\n")
-    output_file.seek(0)
-    text = output_file.read()
-    return text
-
-
 class CodeBrowser(JuftinTextualApp):
     """
     Textual code browser app.
@@ -116,8 +62,7 @@ class CodeBrowser(JuftinTextualApp):
     theme_index = var(0)
     rich_themes = favorite_themes
     selected_file_path = var(None)
-
-    # traceback.install(show_locals=True)
+    traceback.install(show_locals=True)
 
     def watch_show_tree(self, show_tree: bool) -> None:
         """
@@ -171,8 +116,6 @@ class CodeBrowser(JuftinTextualApp):
         elif document.suffix == ".parquet":
             df = pd.read_parquet(document)[:500]
             element = self.df_to_table(pandas_dataframe=df, rich_table=Table())
-        elif document.suffix in [".png", ".jpg", ".jpeg"]:
-            element = image_to_text(document)
         else:
             element = Syntax.from_path(
                 str(document),
@@ -184,23 +127,24 @@ class CodeBrowser(JuftinTextualApp):
         return element
 
     def render_code_page(
-        self, file_path: Optional[pathlib.Path], scroll_home: bool = True
+        self,
+        file_path: Optional[pathlib.Path],
+        scroll_home: bool = True,
+        content: Optional[Any] = None,
     ) -> None:
         """
         Render the Code Page with Rich Syntax
         """
-        if file_path is None:
-            return
         code_view = self.query_one("#code", Static)
+        font = "univers"
+        if content is not None:
+            code_view.update(text2art(content, font=font))
+            return
         try:
             element = self.render_document(document=file_path)
         except Exception:  # noqa
-            font = "block"
             code_view.update(
-                # traceback.Traceback(theme=self.rich_themes[self.theme_index], width=None, show_locals=True)
-                text2art("ENCODING", font=font)
-                + "\n\n"
-                + text2art("ERROR", font=font)
+                text2art("ENCODING", font=font) + "\n\n" + text2art("ERROR", font=font)
             )
             self.sub_title = f"ERROR [{self.rich_themes[self.theme_index]}]"
         else:
@@ -216,6 +160,9 @@ class CodeBrowser(JuftinTextualApp):
         if self.selected_file_path is not None:
             self.show_tree = False
             self.render_code_page(file_path=self.selected_file_path)
+        else:
+            self.show_tree = True
+            self.render_code_page(file_path=None, content="BROWSE")
 
     def on_directory_tree_file_click(self, event: DirectoryTree.FileClick) -> None:
         """
@@ -243,8 +190,9 @@ class CodeBrowser(JuftinTextualApp):
         self.render_code_page(file_path=self.selected_file_path, scroll_home=False)
 
 
+file_path_arg = None if len(argv) == 1 or __name__ != "__main__" else argv[1]
+config = TextualAppContext(file_path=file_path_arg)
+app = CodeBrowser(config_object=config)
+
 if __name__ == "__main__":
-    file_path_arg = None if len(argv) == 1 else argv[1]
-    config = TextualAppContext(file_path=file_path_arg)
-    app = CodeBrowser(config_object=config)
     app.run()

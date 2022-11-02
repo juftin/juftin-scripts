@@ -2,9 +2,11 @@
 Extension Classes
 """
 
+from __future__ import annotations
+
 import pathlib
 from dataclasses import dataclass
-from typing import Any, Optional, Type
+from typing import Optional, Type
 
 from pandas import DataFrame
 from rich.table import Table
