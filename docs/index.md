@@ -2,7 +2,25 @@
 
 Helpful Python scripts by [@juftin](https://github.com/juftin)
 
-#### Check Out the [Docs](https://juftin.github.io/juftin-scripts/)
+## Installation
+
+Using [pipx](https://pypa.github.io/pipx/)
+
+```shell
+pipx install juftin-scripts
+```
+
+Using pip
+
+```shell
+pip install juftin-scripts
+```
+
+## CLI Reference
+
+::: mkdocs-click
+    :module: juftin_scripts.__main__
+    :command: cli
 
 ___________
 ___________
