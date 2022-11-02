@@ -40,7 +40,6 @@ repos:
     -   id: autoflake
         args: [--expand-star-imports, --remove-duplicate-keys, --remove-unused-variables, --remove-all-unused-imports, --in-place]
 
-
 # sets up .pre-commit-ci.yaml to ensure pre-commit dependencies stay up to date
 ci:
     autoupdate_schedule: weekly
