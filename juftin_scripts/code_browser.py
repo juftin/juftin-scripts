@@ -22,7 +22,12 @@ from textual.reactive import var
 from textual.widget import Widget
 from textual.widgets import DirectoryTree, Footer, Header, Static
 
-from juftin_scripts._base import JuftinClickContext, JuftinTextualApp, TextualAppContext
+from juftin_scripts._base import (
+    JuftinClickContext,
+    JuftinTextualApp,
+    TextualAppContext,
+    debug_option,
+)
 
 favorite_themes: List[str] = [
     "monokai",
@@ -54,13 +59,15 @@ class CodeBrowser(JuftinTextualApp):
 
     CSS_PATH = "code_browser.css"
     BINDINGS = [
-        ("f", "toggle_files", "Toggle Files"),
         ("q", "quit", "Quit"),
-        ("t", "theme", "Toggle Rich Theme"),
+        ("f", "toggle_files", "Toggle Files"),
+        ("t", "theme", "Toggle Theme"),
+        ("n", "linenos", "Toggle Line Numbers"),
     ]
 
     show_tree = var(True)
     theme_index = var(0)
+    linenos = var(False)
     rich_themes = favorite_themes
     selected_file_path: Union[pathlib.Path, None, var[None]] = var(None)
     force_show_tree = var(False)
@@ -122,7 +129,7 @@ class CodeBrowser(JuftinTextualApp):
         else:
             return Syntax.from_path(
                 str(document),
-                line_numbers=True,
+                line_numbers=self.linenos,
                 word_wrap=False,
                 indent_guides=True,
                 theme=self.rich_themes[self.theme_index],
@@ -196,11 +203,23 @@ class CodeBrowser(JuftinTextualApp):
             self.theme_index = 0
         self.render_code_page(file_path=self.selected_file_path, scroll_home=False)
 
+    def action_linenos(self) -> None:
+        """
+        An action to toggle line numbers.
+        """
+        if self.selected_file_path is None:
+            return
+        self.linenos = not self.linenos
+        self.render_code_page(file_path=self.selected_file_path, scroll_home=False)
+
 
 @click.command(name="browse")
 @click.argument("path", default=None, required=False, type=click.Path(exists=True))
 @click.pass_obj
-def browse(context: JuftinClickContext, path: Optional[str]) -> None:
+@debug_option
+def browse(
+    context: Optional[JuftinClickContext], path: Optional[str], debug: bool
+) -> None:
     """
     Start the TUI File Browser
 
@@ -208,6 +227,10 @@ def browse(context: JuftinClickContext, path: Optional[str]) -> None:
     allows you to visually browse through a repository and display the contents of its
     files
     """
+    if context is None:
+        context = JuftinClickContext(debug=debug)
+    elif context.debug is False:
+        context.debug = debug
     config = TextualAppContext(file_path=path, debug=context.debug)
     app = CodeBrowser(config_object=config)
     app.run()

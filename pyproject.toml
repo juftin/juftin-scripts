@@ -53,6 +53,7 @@ mkdocs-click = "^0.8.0"
 
 [tool.poetry.scripts]
 juftin = "juftin_scripts.__main__:cli"
+browse = "juftin_scripts.code_browser:browse"
 
 [tool.poetry.urls]
 Changelog = "https://github.com/juftin/juftin-scripts/releases"
