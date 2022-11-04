@@ -215,7 +215,9 @@ class CodeBrowser(JuftinTextualApp):
 @click.argument("path", default=None, required=False, type=click.Path(exists=True))
 @click.pass_obj
 @debug_option
-def browse(context: JuftinClickContext, path: Optional[str], debug: bool) -> None:
+def browse(
+    context: Optional[JuftinClickContext], path: Optional[str], debug: bool
+) -> None:
     """
     Start the TUI File Browser
 
