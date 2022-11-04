@@ -13,15 +13,11 @@ from rich import traceback
 from rich.logging import RichHandler
 
 from juftin_scripts import __application__, __version__
-from juftin_scripts._base import JuftinClickContext
+from juftin_scripts._base import JuftinClickContext, debug_option
 from juftin_scripts.code_browser import browse
 from juftin_scripts.rotation import rotate
 
 logger = logging.getLogger(__name__)
-
-debug_option = click.option(
-    "--debug/--no-debug", default=False, help="Enable extra debugging output"
-)
 
 
 @click.group(name="juftin")
