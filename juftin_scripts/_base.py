@@ -8,9 +8,14 @@ import pathlib
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
 
+import rich_click as click
 from pandas import DataFrame
 from rich.table import Table
 from textual.app import App
+
+debug_option = click.option(
+    "--debug/--no-debug", default=False, help="Enable extra debugging output"
+)
 
 
 @dataclass
