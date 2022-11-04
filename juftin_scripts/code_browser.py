@@ -207,6 +207,8 @@ class CodeBrowser(JuftinTextualApp):
         """
         An action to toggle line numbers.
         """
+        if self.selected_file_path is None:
+            return
         self.linenos = not self.linenos
         self.render_code_page(file_path=self.selected_file_path, scroll_home=False)
 
