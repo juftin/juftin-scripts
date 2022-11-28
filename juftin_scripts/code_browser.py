@@ -131,7 +131,7 @@ class CodeBrowser(JuftinTextualApp):
                 str(document),
                 line_numbers=self.linenos,
                 word_wrap=False,
-                indent_guides=True,
+                indent_guides=False,
                 theme=self.rich_themes[self.theme_index],
             )
 
