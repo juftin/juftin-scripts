@@ -49,6 +49,7 @@ mypy = "^0.971"
 mkdocs = "^1.4.1"
 mkdocs-material = "^8.5.7"
 mkdocs-click = "^0.8.0"
+textual = {extras = ["dev"], version = "^0.5.0"}
 
 [tool.poetry.scripts]
 juftin = "juftin_scripts.__main__:cli"
