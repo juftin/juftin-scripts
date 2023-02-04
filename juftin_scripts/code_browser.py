@@ -73,7 +73,7 @@ class UniversalDirectoryTree(DirectoryTree):
         )
         for entry in directory:
             node.add(entry.name, DirEntry(entry, entry.is_dir()))
-        node.loaded = True
+        node.loaded = True  # type: ignore[attr-defined]
         node.expand()
         self.refresh(layout=True)
 
@@ -242,14 +242,6 @@ class CodeBrowser(JuftinTextualApp):
             return
         self.linenos = not self.linenos
         self.render_code_page(file_path=self.selected_file_path, scroll_home=False)
-
-
-def _exists_callback(path: str):
-    """
-    Check whether the file exists
-    """
-    if not upath.UPath(path).exists():
-        raise FileNotFoundError(f"That path doesn't exist: {path}")
 
 
 @click.command(name="browse")
