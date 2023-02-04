@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, Optional
 
 import rich_click as click
+import upath
 from pandas import DataFrame
 from rich.table import Table
 from textual.app import App
@@ -29,12 +30,12 @@ class TextualAppContext:
     debug: bool = False
 
     @property
-    def path(self) -> pathlib.Path:
+    def path(self) -> upath.UPath:
         """
-        Resolve `file_path` to a pathlib.Path object
+        Resolve `file_path` to a upath.UPath object
         """
         return (
-            pathlib.Path(self.file_path).resolve()
+            upath.UPath(self.file_path)
             if self.file_path
             else pathlib.Path.cwd().resolve()
         )
