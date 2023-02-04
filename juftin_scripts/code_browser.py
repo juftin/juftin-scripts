@@ -66,14 +66,13 @@ class UniversalDirectoryTree(DirectoryTree):
         Load Directory Using Universal Pathlib
         """
         dir_path = UPath(node.data.path)
-        node.data.loaded = True
         directory = sorted(
             list(dir_path.iterdir()),
             key=lambda path: (not path.is_dir(), path.name.lower()),
         )
         for entry in directory:
             node.add(entry.name, DirEntry(entry, entry.is_dir()))
-        node.loaded = True  # type: ignore[attr-defined]
+        node.loaded = True
         node.expand()
         self.refresh(layout=True)
 
