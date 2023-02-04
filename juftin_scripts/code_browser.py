@@ -22,14 +22,13 @@ from textual.containers import Container, Vertical
 from textual.reactive import var
 from textual.widget import Widget
 from textual.widgets import DirectoryTree, Footer, Header, Static
-from textual.widgets._directory_tree import DirEntry
-from textual.widgets._tree_control import TreeNode
-from upath import UPath
 
 from juftin_scripts._base import (
+    FileSizeError,
     JuftinClickContext,
     JuftinTextualApp,
     TextualAppContext,
+    UniversalDirectoryTree,
     debug_option,
 )
 
@@ -56,27 +55,6 @@ if rich_default_theme is not False:
     favorite_themes.insert(0, rich_default_theme)
 
 
-class UniversalDirectoryTree(DirectoryTree):
-    """
-    A Universal DirectoryTree supporting different filesystems
-    """
-
-    async def load_directory(self, node: TreeNode[DirEntry]) -> None:
-        """
-        Load Directory Using Universal Pathlib
-        """
-        dir_path = UPath(node.data.path)
-        directory = sorted(
-            list(dir_path.iterdir()),
-            key=lambda path: (not path.is_dir(), path.name.lower()),
-        )
-        for entry in directory:
-            node.add(entry.name, DirEntry(entry, entry.is_dir()))
-        node.loaded = True
-        node.expand()
-        self.refresh(layout=True)
-
-
 class CodeBrowser(JuftinTextualApp):
     """
     Textual code browser app.
@@ -88,6 +66,7 @@ class CodeBrowser(JuftinTextualApp):
         ("f", "toggle_files", "Toggle Files"),
         ("t", "theme", "Toggle Theme"),
         ("n", "linenos", "Toggle Line Numbers"),
+        ("d", "toggle_dark", "Toggle dark mode"),
     ]
 
     show_tree = var(True)
@@ -180,7 +159,26 @@ class CodeBrowser(JuftinTextualApp):
             code_view.update(text2art(content, font=font))
             return
         try:
+            stat = file_path.stat()
+            if isinstance(stat, dict):
+                file_size_mb = stat["Size"] / 1000 / 1000
+            else:
+                file_size_mb = stat.st_size / 1000 / 1000
+            if file_size_mb >= 8:
+                raise FileSizeError("File too large")
             element = self.render_document(document=file_path)
+        except FileSizeError:
+            code_view.update(
+                text2art("FILE TOO", font=font) + "\n\n" + text2art(f"LARGE", font=font)
+            )
+            self.sub_title = f"ERROR [{self.rich_themes[self.theme_index]}]"
+        except PermissionError:
+            code_view.update(
+                text2art("PERMISSION", font=font)
+                + "\n\n"
+                + text2art("ERROR", font=font)
+            )
+            self.sub_title = f"ERROR [{self.rich_themes[self.theme_index]}]"
         except UnicodeError:
             code_view.update(
                 text2art("ENCODING", font=font) + "\n\n" + text2art("ERROR", font=font)

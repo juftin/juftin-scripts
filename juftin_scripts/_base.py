@@ -13,6 +13,10 @@ import upath
 from pandas import DataFrame
 from rich.table import Table
 from textual.app import App
+from textual.widgets import DirectoryTree
+from textual.widgets._directory_tree import DirEntry
+from textual.widgets._tree_control import TreeNode
+from upath import UPath
 
 debug_option = click.option(
     "--debug/--no-debug", default=False, help="Enable extra debugging output"
@@ -110,3 +114,30 @@ class JuftinClickContext:
     """
 
     debug: bool
+
+
+class UniversalDirectoryTree(DirectoryTree):
+    """
+    A Universal DirectoryTree supporting different filesystems
+    """
+
+    async def load_directory(self, node: TreeNode[DirEntry]) -> None:
+        """
+        Load Directory Using Universal Pathlib
+        """
+        dir_path = UPath(node.data.path)
+        directory = sorted(
+            list(dir_path.iterdir()),
+            key=lambda path: (not path.is_dir(), path.name.lower()),
+        )
+        for entry in directory:
+            node.add(entry.name, DirEntry(entry, entry.is_dir()))
+        node.loaded = True
+        node.expand()
+        self.refresh(layout=True)
+
+
+class FileSizeError(Exception):
+    """
+    File Too Large Error
+    """
