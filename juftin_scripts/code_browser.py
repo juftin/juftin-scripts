@@ -11,6 +11,7 @@ from typing import Any, Iterable, List, Optional, Union
 
 import pandas as pd
 import rich_click as click
+import upath
 from art import text2art
 from rich import traceback
 from rich.markdown import Markdown
@@ -21,6 +22,9 @@ from textual.containers import Container, Vertical
 from textual.reactive import var
 from textual.widget import Widget
 from textual.widgets import DirectoryTree, Footer, Header, Static
+from textual.widgets._directory_tree import DirEntry
+from textual.widgets._tree_control import TreeNode
+from upath import UPath
 
 from juftin_scripts._base import (
     JuftinClickContext,
@@ -52,6 +56,27 @@ if rich_default_theme is not False:
     favorite_themes.insert(0, rich_default_theme)
 
 
+class UniversalDirectoryTree(DirectoryTree):
+    """
+    A Universal DirectoryTree supporting different filesystems
+    """
+
+    async def load_directory(self, node: TreeNode[DirEntry]) -> None:
+        """
+        Load Directory Using Universal Pathlib
+        """
+        dir_path = UPath(node.data.path)
+        directory = sorted(
+            list(dir_path.iterdir()),
+            key=lambda path: (not path.is_dir(), path.name.lower()),
+        )
+        for entry in directory:
+            node.add(entry.name, DirEntry(entry, entry.is_dir()))
+        node.loaded = True
+        node.expand()
+        self.refresh(layout=True)
+
+
 class CodeBrowser(JuftinTextualApp):
     """
     Textual code browser app.
@@ -69,7 +94,7 @@ class CodeBrowser(JuftinTextualApp):
     theme_index = var(0)
     linenos = var(False)
     rich_themes = favorite_themes
-    selected_file_path: Union[pathlib.Path, None, var[None]] = var(None)
+    selected_file_path: Union[upath.UPath, None, var[None]] = var(None)
     force_show_tree = var(False)
 
     traceback.install(show_locals=True)
@@ -94,20 +119,22 @@ class CodeBrowser(JuftinTextualApp):
             self.force_show_tree = True
         self.header = Header()
         yield self.header
-        self.directory_tree = Vertical(DirectoryTree(str(file_path)), id="tree-view")
+        self.directory_tree = Vertical(
+            UniversalDirectoryTree(str(file_path)), id="tree-view"
+        )
         self.code_view = Vertical(Static(id="code", expand=True), id="code-view")
         self.container = Container(self.directory_tree, self.code_view)
         yield self.container
         self.footer = Footer()
         yield self.footer
 
-    def render_document(self, document: pathlib.Path) -> Union[Syntax, Markdown, Table]:
+    def render_document(self, document: upath.UPath) -> Union[Syntax, Markdown, Table]:
         """
         Render a Code Doc Given Its Extension
 
         Parameters
         ----------
-        document: pathlib.Path
+        document: upath.UPath
             File Path to Render
 
         Returns
@@ -120,15 +147,18 @@ class CodeBrowser(JuftinTextualApp):
                 code_theme=self.rich_themes[self.theme_index],
                 hyperlinks=True,
             )
-        elif document.suffix == ".csv":
+        elif ".csv" in document.suffixes:
             df = pd.read_csv(document, nrows=500)
             return self.df_to_table(pandas_dataframe=df, rich_table=Table())
         elif document.suffix == ".parquet":
             df = pd.read_parquet(document)[:500]
             return self.df_to_table(pandas_dataframe=df, rich_table=Table())
         else:
-            return Syntax.from_path(
-                str(document),
+            code = document.read_text()
+            lexer = Syntax.guess_lexer(str(document), code=code)
+            return Syntax(
+                code=code,
+                lexer=lexer,
                 line_numbers=self.linenos,
                 word_wrap=False,
                 indent_guides=False,
@@ -137,7 +167,7 @@ class CodeBrowser(JuftinTextualApp):
 
     def render_code_page(
         self,
-        file_path: pathlib.Path,
+        file_path: upath.UPath,
         scroll_home: bool = True,
         content: Optional[Any] = None,
     ) -> None:
@@ -182,8 +212,8 @@ class CodeBrowser(JuftinTextualApp):
         """
         Called when the user click a file in the directory tree.
         """
-        self.selected_file_path = pathlib.Path(event.path)
-        self.render_code_page(file_path=pathlib.Path(event.path))
+        self.selected_file_path = upath.UPath(event.path)
+        self.render_code_page(file_path=upath.UPath(event.path))
 
     def action_toggle_files(self) -> None:
         """
@@ -214,7 +244,7 @@ class CodeBrowser(JuftinTextualApp):
 
 
 @click.command(name="browse")
-@click.argument("path", default=None, required=False, type=click.Path(exists=True))
+@click.argument("path", default=None, required=False, metavar="PATH")
 @click.pass_obj
 @debug_option
 def browse(
