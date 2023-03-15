@@ -8,14 +8,14 @@ import pathlib
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
 
+import numpy as np
 import rich_click as click
 import upath
 from pandas import DataFrame
-from rich.table import Table
 from textual.app import App
-from textual.widgets import DirectoryTree
+from textual.widgets import DataTable, DirectoryTree
 from textual.widgets._directory_tree import DirEntry
-from textual.widgets._tree_control import TreeNode
+from textual.widgets._tree import TreeNode
 from upath import UPath
 
 debug_option = click.option(
@@ -69,10 +69,10 @@ class JuftinTextualApp(App[str]):
     @staticmethod
     def df_to_table(
         pandas_dataframe: DataFrame,
-        rich_table: Table,
+        table: DataTable[str],
         show_index: bool = True,
         index_name: Optional[str] = None,
-    ) -> Table:
+    ) -> DataTable[str]:
         """
         Convert a pandas.DataFrame obj into a rich.Table obj.
 
@@ -80,8 +80,8 @@ class JuftinTextualApp(App[str]):
         ----------
         pandas_dataframe: DataFrame
             A Pandas DataFrame to be converted to a rich Table.
-        rich_table: Table
-            A rich Table that should be populated by the DataFrame values.
+        table: DataTable[str]
+            A DataTable that should be populated by the DataFrame values.
         show_index: bool
             Add a column with a row count to the table. Defaults to True.
         index_name: Optional[str]
@@ -89,22 +89,21 @@ class JuftinTextualApp(App[str]):
 
         Returns
         -------
-        Table
-            The rich Table instance passed, populated with the DataFrame values.
+        DataTable[str]
+            The DataTable instance passed, populated with the DataFrame values.
         """
+        table.clear(columns=True)
         if show_index:
             index_name = str(index_name) if index_name else ""
-            rich_table.add_column(index_name)
-
+            table.add_column(index_name)
         for column in pandas_dataframe.columns:
-            rich_table.add_column(str(column))
-
+            table.add_column(str(column))
+        pandas_dataframe.replace([np.NaN], [""], inplace=True)
         for index, value_list in enumerate(pandas_dataframe.values.tolist()):
             row = [str(index)] if show_index else []
             row += [str(x) for x in value_list]
-            rich_table.add_row(*row)
-
-        return rich_table
+            table.add_row(*row)
+        return table
 
 
 @dataclass
@@ -121,20 +120,24 @@ class UniversalDirectoryTree(DirectoryTree):
     A Universal DirectoryTree supporting different filesystems
     """
 
-    async def load_directory(self, node: TreeNode[DirEntry]) -> None:
+    def load_directory(self, node: TreeNode[DirEntry]) -> None:
         """
         Load Directory Using Universal Pathlib
         """
+        assert node.data is not None
         dir_path = UPath(node.data.path)
+        node.data.loaded = True
         directory = sorted(
             list(dir_path.iterdir()),
             key=lambda path: (not path.is_dir(), path.name.lower()),
         )
-        for entry in directory:
-            node.add(entry.name, DirEntry(entry, entry.is_dir()))
-        node.loaded = True
+        for path in directory:
+            node.add(
+                path.name,
+                data=DirEntry(str(path), path.is_dir()),
+                allow_expand=path.is_dir(),
+            )
         node.expand()
-        self.refresh(layout=True)
 
 
 class FileSizeError(Exception):

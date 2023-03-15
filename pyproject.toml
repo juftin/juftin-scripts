@@ -1,81 +1,82 @@
 [build-system]
-requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+requires = ["poetry-core>=1.0.0"]
 
 [tool.poetry]
-name = "juftin-scripts"
-description = "Helpful Python scripts by @juftin"
-version = "0.3.1"
 authors = ["Justin Flannery <juftin@juftin.com>"]
-license = "MIT"
-readme = "README.md"
-homepage = "https://github.com/juftin/juftin-scripts"
-repository = "https://github.com/juftin/juftin-scripts"
-documentation = "https://juftin.github.io/juftin-scripts"
 classifiers = [
-    "Development Status :: 3 - Alpha",
-    "Operating System :: OS Independent",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.7",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10"
+  "Development Status :: 3 - Alpha",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.7",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10"
 ]
-packages = [{ include = "juftin_scripts" }]
+description = "Helpful Python scripts by @juftin"
+documentation = "https://juftin.github.io/juftin-scripts"
+homepage = "https://github.com/juftin/juftin-scripts"
 include = [
-    "juftin_scripts/py.typed",
-    "juftin_scripts/*.css"
+  "juftin_scripts/py.typed",
+  "juftin_scripts/*.css"
 ]
+license = "MIT"
+name = "juftin-scripts"
+packages = [{include = "juftin_scripts"}]
+readme = "README.md"
+repository = "https://github.com/juftin/juftin-scripts"
+version = "0.3.1"
 
 [tool.poetry.dependencies]
-python = ">=3.8,<4.0"
-click = "^8.1.2"
-rich-click = "^1.5.2"
-art = "^5.7"
-pandas = ">=1.5"
-pyarrow = { version = "^10.0.0", optional = true }
-textual = "^0.5.0"
-rich = "^12.6.0"
-fsspec = "^2023.1.0"
-universal-pathlib = "^0.0.21"
-s3fs = {version = "^2023.1.0", optional = true}
-aiohttp = {version = "^3.8.3", optional = true}
-requests = {version = "^2.28.2", optional = true}
-gcsfs = {version = "^2023.1.0", optional = true}
 adlfs = {version = "^2023.1.0", optional = true}
+aiohttp = {version = "^3.8.3", optional = true}
+art = "^5.7"
+click = "^8.1.2"
+fsspec = "^2023.1.0"
+gcsfs = {version = "^2023.1.0", optional = true}
+pandas = ">=1.5"
+pyarrow = {version = "^10.0.0", optional = true}
+python = ">=3.8,<4.0"
+requests = {version = "^2.28.2", optional = true}
+rich = "^13.3.2"
+rich-click = "^1.5.2"
+rich-pixels = "^2.1.1"
+s3fs = {version = "^2023.1.0", optional = true}
+textual = "^0.15.1"
+universal-pathlib = "^0.0.21"
 
 [tool.poetry.extras]
-parquet = ["pyarrow"]
-fsspec = [
-    "s3fs",
-    "aiohttp",
-    "requests",
-    "gcsfs",
-    "adlfs"
-]
 all = [
-    "pyarrow",
-    "s3fs",
-    "aiohttp",
-    "requests",
-    "gcsfs",
-    "adlfs"
+  "pyarrow",
+  "s3fs",
+  "aiohttp",
+  "requests",
+  "gcsfs",
+  "adlfs"
 ]
+fsspec = [
+  "s3fs",
+  "aiohttp",
+  "requests",
+  "gcsfs",
+  "adlfs"
+]
+parquet = ["pyarrow"]
 
 [tool.poetry.group.dev.dependencies]
-pytest = ">=5.2"
-coverage = { extras = ["toml"], version = ">=6.2" }
+coverage = {extras = ["toml"], version = ">=6.2"}
 flake8 = ">=3.0.0"
-tox = "^3.25.1"
-mypy = "^0.971"
 mkdocs = "^1.4.1"
-mkdocs-material = "^8.5.7"
 mkdocs-click = "^0.8.0"
-textual = {extras = ["dev"], version = "^0.5.0"}
+mkdocs-material = "^8.5.7"
+mypy = "^0.971"
+pytest = ">=5.2"
+textual = {extras = ["dev"], version = "^0.15.1", optional = true}
+tox = "^3.25.1"
 
 [tool.poetry.scripts]
-juftin = "juftin_scripts.__main__:cli"
 browse = "juftin_scripts.code_browser:browse"
+juftin = "juftin_scripts.__main__:cli"
 
 [tool.poetry.urls]
 Changelog = "https://github.com/juftin/juftin-scripts/releases"
