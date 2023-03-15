@@ -5,23 +5,26 @@ Run with:
     python code_browser.py PATH
 """
 
+import json
 import pathlib
 from os import getenv
 from typing import Any, Iterable, List, Optional, Union
 
 import pandas as pd
 import rich_click as click
+import rich_pixels
 import upath
 from art import text2art
+from PIL import Image
 from rich import traceback
 from rich.markdown import Markdown
 from rich.syntax import Syntax
-from rich.table import Table
 from rich.traceback import Traceback
 from textual.containers import Container, Vertical
 from textual.reactive import var
 from textual.widget import Widget
-from textual.widgets import DirectoryTree, Footer, Header, Static
+from textual.widgets import DataTable, DirectoryTree, Footer, Header, Static
+from upath.implementations.cloud import CloudPath
 
 from juftin_scripts._base import (
     FileSizeError,
@@ -98,16 +101,20 @@ class CodeBrowser(JuftinTextualApp):
             self.force_show_tree = True
         self.header = Header()
         yield self.header
-        self.directory_tree = Vertical(
-            UniversalDirectoryTree(str(file_path)), id="tree-view"
-        )
+        self.directory_tree = UniversalDirectoryTree(str(file_path), id="tree-view")
         self.code_view = Vertical(Static(id="code", expand=True), id="code-view")
-        self.container = Container(self.directory_tree, self.code_view)
+        self.table_view: DataTable[str] = DataTable(
+            zebra_stripes=True, show_header=True, show_cursor=True
+        )
+        self.table_view.display = False
+        self.container = Container(self.directory_tree, self.code_view, self.table_view)
         yield self.container
         self.footer = Footer()
         yield self.footer
 
-    def render_document(self, document: upath.UPath) -> Union[Syntax, Markdown, Table]:
+    def render_document(
+        self, document: upath.UPath
+    ) -> Union[Syntax, Markdown, DataTable[str]]:
         """
         Render a Code Doc Given Its Extension
 
@@ -118,7 +125,7 @@ class CodeBrowser(JuftinTextualApp):
 
         Returns
         -------
-        Union[Syntax, Markdown, Table]
+        Union[Syntax, Markdown, DataTable[str]]
         """
         if document.suffix == ".md":
             return Markdown(
@@ -128,21 +135,57 @@ class CodeBrowser(JuftinTextualApp):
             )
         elif ".csv" in document.suffixes:
             df = pd.read_csv(document, nrows=500)
-            return self.df_to_table(pandas_dataframe=df, rich_table=Table())
+            return self.df_to_table(pandas_dataframe=df, table=self.table_view)
         elif document.suffix == ".parquet":
             df = pd.read_parquet(document)[:500]
-            return self.df_to_table(pandas_dataframe=df, rich_table=Table())
+            return self.df_to_table(pandas_dataframe=df, table=self.table_view)
+        elif document.suffix.lower() in [".png", ".jpg", ".jpeg"]:
+            screen_width = self.app.size.width / 4
+            with Image.open(document) as image:
+                image_width = image.width
+                image_height = image.height
+                size_ratio = image_width / screen_width
+                new_width = min(int(image_width / size_ratio), image_width)
+                new_height = min(int(image_height / size_ratio), image_height)
+                resized = image.resize((new_width, new_height))
+                content = rich_pixels.Pixels.from_image(resized)
+            return content
+        elif document.suffix.lower() in [".json"]:
+            code_str = document.read_text()
+            code_obj = json.loads(code_str)
+            code_lines = json.dumps(code_obj, indent=2).splitlines()
         else:
-            code = document.read_text()
-            lexer = Syntax.guess_lexer(str(document), code=code)
-            return Syntax(
-                code=code,
-                lexer=lexer,
-                line_numbers=self.linenos,
-                word_wrap=False,
-                indent_guides=False,
-                theme=self.rich_themes[self.theme_index],
-            )
+            code_lines = document.read_text().splitlines()
+        code = "\n".join(code_lines[:1000])
+        lexer = Syntax.guess_lexer(str(document), code=code)
+        return Syntax(
+            code=code,
+            lexer=lexer,
+            line_numbers=self.linenos,
+            word_wrap=False,
+            indent_guides=False,
+            theme=self.rich_themes[self.theme_index],
+        )
+
+    @classmethod
+    def _handle_file_size(cls, file_path: pathlib.Path) -> None:
+        """
+        Handle a File Size
+        """
+        stat = file_path.stat()
+        if isinstance(stat, dict):
+            file_size = {key.lower(): value for key, value in stat.items()}["size"]
+            file_size_mb = file_size / 1000 / 1000
+        else:
+            file_size_mb = stat.st_size / 1000 / 1000
+        too_large = file_size_mb >= 8
+        exception = (
+            True
+            if not isinstance(file_path, CloudPath) and ".csv" in file_path.suffixes
+            else False
+        )
+        if too_large is True and exception is not True:
+            raise FileSizeError("File too large")
 
     def render_code_page(
         self,
@@ -159,20 +202,18 @@ class CodeBrowser(JuftinTextualApp):
             code_view.update(text2art(content, font=font))
             return
         try:
-            stat = file_path.stat()
-            if isinstance(stat, dict):
-                file_size_mb = stat["Size"] / 1000 / 1000
-            else:
-                file_size_mb = stat.st_size / 1000 / 1000
-            if file_size_mb >= 8:
-                raise FileSizeError("File too large")
+            self._handle_file_size(file_path=file_path)
             element = self.render_document(document=file_path)
         except FileSizeError:
+            self.table_view.display = False
+            self.code_view.display = True
             code_view.update(
-                text2art("FILE TOO", font=font) + "\n\n" + text2art(f"LARGE", font=font)
+                text2art("FILE TOO", font=font) + "\n\n" + text2art("LARGE", font=font)
             )
             self.sub_title = f"ERROR [{self.rich_themes[self.theme_index]}]"
         except PermissionError:
+            self.table_view.display = False
+            self.code_view.display = True
             code_view.update(
                 text2art("PERMISSION", font=font)
                 + "\n\n"
@@ -180,17 +221,29 @@ class CodeBrowser(JuftinTextualApp):
             )
             self.sub_title = f"ERROR [{self.rich_themes[self.theme_index]}]"
         except UnicodeError:
+            self.table_view.display = False
+            self.code_view.display = True
             code_view.update(
                 text2art("ENCODING", font=font) + "\n\n" + text2art("ERROR", font=font)
             )
             self.sub_title = f"ERROR [{self.rich_themes[self.theme_index]}]"
         except Exception:  # noqa
+            self.table_view.display = False
+            self.code_view.display = True
             code_view.update(
                 Traceback(theme=self.rich_themes[self.theme_index], width=None)
             )
             self.sub_title = "ERROR" + f" [{self.rich_themes[self.theme_index]}]"
         else:
-            code_view.update(element)
+            if isinstance(element, DataTable):
+                self.code_view.display = False
+                self.table_view.display = True
+                if scroll_home is True:
+                    self.query_one(DataTable).scroll_home(animate=False)
+            else:
+                self.table_view.display = False
+                self.code_view.display = True
+                code_view.update(element)
             if scroll_home is True:
                 self.query_one("#code-view").scroll_home(animate=False)
             self.sub_title = f"{file_path} [{self.rich_themes[self.theme_index]}]"
@@ -206,7 +259,9 @@ class CodeBrowser(JuftinTextualApp):
             self.show_tree = True
             self.render_code_page(file_path=pathlib.Path.cwd(), content="BROWSE")
 
-    def on_directory_tree_file_click(self, event: DirectoryTree.FileClick) -> None:
+    def on_directory_tree_file_selected(
+        self, event: DirectoryTree.FileSelected
+    ) -> None:
         """
         Called when the user click a file in the directory tree.
         """
