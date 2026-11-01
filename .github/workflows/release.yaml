@@ -79,7 +79,7 @@ jobs:
                 REPLACED_VERSION_FILE_TEXT=$(grep -F -v "__version__" juftin_scripts/_version.py)
                 echo "${REPLACED_VERSION_FILE_TEXT}" > juftin_scripts/_version.py
                 echo "__version__ = \""${PROJECT_VERSION}\""" >> juftin_scripts/_version.py
-        -   uses: EndBug/add-and-commit@v9
+        -   uses: EndBug/add-and-commit@v11
             with:
                 default_author: github_actions
                 message: juftin-scripts 🤖 ${{ env.PROJECT_VERSION }}
