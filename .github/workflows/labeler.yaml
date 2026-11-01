@@ -83,7 +83,7 @@ jobs:
                     core.setOutput('status', status)
                     console.log(version)
                     core.setOutput('version', version)
-        -   uses: marocchino/sticky-pull-request-comment@v2
+        -   uses: marocchino/sticky-pull-request-comment@v3
             if: steps.script.outputs.status != 'success'
             with:
                 header: improper-version-labels
@@ -96,7 +96,7 @@ jobs:
                       - `BUMP_MINOR`
                       - `BUMP_PATCH`
                 delete: true
-        -   uses: marocchino/sticky-pull-request-comment@v2
+        -   uses: marocchino/sticky-pull-request-comment@v3
             if: steps.script.outputs.status == 'success'
             with:
                 header: improper-version-labels
