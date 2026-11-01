@@ -39,7 +39,7 @@ jobs:
                 else
                    echo MATCH="false" >> ${GITHUB_ENV}
                 fi
-        -   uses: marocchino/sticky-pull-request-comment@v2
+        -   uses: marocchino/sticky-pull-request-comment@v3
             if: ${{ env.MATCH == 'false' }}
             with:
                 header: different-version-main
@@ -55,7 +55,7 @@ jobs:
                     git commit -m "Version Bump - ${{ env.COMPARED_VERSION }}"
                     git push
                     ```
-        -   uses: marocchino/sticky-pull-request-comment@v2
+        -   uses: marocchino/sticky-pull-request-comment@v3
             if: ${{ env.MATCH == 'true' }}
             with:
                 header: different-version-main
