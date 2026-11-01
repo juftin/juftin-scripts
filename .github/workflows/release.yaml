@@ -117,7 +117,7 @@ jobs:
                 echo PROJECT_TAG='v${{ env.PROJECT_VERSION }}' >> ${GITHUB_ENV}
                 echo PROJECT_RELEASE='${{ env.PROJECT_NAME }} v${{ env.PROJECT_VERSION }}' >> ${GITHUB_ENV}
         -   name: Draft a Release
-            uses: release-drafter/release-drafter@v5
+            uses: release-drafter/release-drafter@v7
             with:
                 config-name: release-drafter.yaml
                 name: ${{ env.PROJECT_RELEASE }}
