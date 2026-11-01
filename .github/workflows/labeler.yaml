@@ -50,7 +50,7 @@ jobs:
         concurrency:
             group: ${{ github.ref }}
         steps:
-        -   uses: actions/github-script@v6
+        -   uses: actions/github-script@v9
             id: script
             with:
                 script: |
@@ -110,7 +110,7 @@ jobs:
         if: github.event_name == 'issues'
         runs-on: ubuntu-latest
         steps:
-        -   uses: actions/github-script@v6
+        -   uses: actions/github-script@v9
             with:
                 script: |
                     github.rest.issues.addLabels({
